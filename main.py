@@ -45,13 +45,10 @@ def yt():
  if not url: return jsonify({"error":"url kosong"})
  id = str(uuid.uuid4())
  out = f"{id}.%(ext)s"
- cmd = ['yt-dlp', '--ffmpeg-location', '/usr/bin', url, '-o', out]
- if tipe == 'mp3':
-  cmd += ['--extract-audio','--audio-format','mp3']
- elif tipe == 'mp4':
-  cmd += ['-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]']
- else:
-  return jsonify({"error":"tipe harus mp3 atau mp4"})
+ cmd = ['yt-dlp', url, '-o', out]
+ if tipe == 'mp3': cmd += ['--extract-audio','--audio-format','mp3']
+ elif tipe == 'mp4': cmd += ['-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]']
+ else: return jsonify({"error":"tipe harus mp3 atau mp4"})
  subprocess.run(cmd)
  for f in os.listdir():
   if f.startswith(id):
@@ -69,4 +66,15 @@ def removebg():
  auto_delete(id)
  return send_file(id, mimetype='image/png')
 
-@app
+@app.route('/upscale', methods=['POST'])
+def upscale():
+ if 'image' not in request.files: return jsonify({"error":"image kosong"})
+ img = Image.open(request.files['image'])
+ besar = img.resize((img.width*2, img.height*2), Image.LANCZOS)
+ id = f"{uuid.uuid4()}.png"
+ besar.save(id)
+ auto_delete(id)
+ return send_file(id, mimetype='image/png')
+
+if __name__ == '__main__':
+ app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 3000)))
