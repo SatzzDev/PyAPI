@@ -46,15 +46,16 @@ def yt():
  id = str(uuid.uuid4())
  out = f"{id}.%(ext)s"
  cmd = ['yt-dlp', url, '-o', out]
- if tipe == 'mp3': cmd += ['--extract-audio','--audio-format','mp3','--ffmpeg-location','/usr/bin/ffmpeg','--prefer-ffmpeg']
- elif tipe == 'mp4': cmd += ['-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]']
+ if tipe == 'mp3': cmd += ['-x','--audio-format','mp3','--audio-quality','0','--ffmpeg-location','/usr/bin/ffmpeg','--prefer-ffmpeg']
+ elif tipe == 'mp4': cmd += ['-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]','--ffmpeg-location','/usr/bin/ffmpeg','--prefer-ffmpeg']
  else: return jsonify({"error":"tipe harus mp3 atau mp4"})
  subprocess.run(cmd)
  for f in os.listdir():
-  if f.startswith(id):
+  if f.startswith(id) and ((tipe=='mp3' and f.endswith('.mp3')) or (tipe=='mp4' and f.endswith('.mp4'))):
    auto_delete(f)
    return send_file(f, as_attachment=True)
  return jsonify({"error":"gagal download"})
+
 
 @app.route('/removebg', methods=['POST'])
 def removebg():
