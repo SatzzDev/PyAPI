@@ -1,13 +1,16 @@
 import math
 from flask import Flask, request, send_file, jsonify
-import os, uuid, subprocess, random
+import os, uuid, subprocess, random, threading, time
 from rembg import remove
 from PIL import Image
-import threading, time
 
 def auto_delete(file, delay=180):
  def hapus(): time.sleep(delay); os.remove(file) if os.path.exists(file) else None
  threading.Thread(target=hapus).start()
+
+def nunggu_model():
+ while not os.path.exists('/root/.u2net/u2net.onnx'): time.sleep(1)
+threading.Thread(target=nunggu_model).start()
 
 app = Flask(__name__)
 
@@ -55,7 +58,6 @@ def yt():
    auto_delete(f)
    return send_file(f, as_attachment=True)
  return jsonify({"error":"gagal download"})
-
 
 @app.route('/removebg', methods=['POST'])
 def removebg():
