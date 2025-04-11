@@ -1,0 +1,6 @@
+flask
+yt-dlp
+rembg
+pillow
+onnxruntime
+math
