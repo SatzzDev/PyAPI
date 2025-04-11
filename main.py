@@ -46,7 +46,7 @@ def yt():
  id = str(uuid.uuid4())
  out = f"{id}.%(ext)s"
  cmd = ['yt-dlp', url, '-o', out]
- if tipe == 'mp3': cmd += ['--extract-audio','--audio-format','mp3']
+ if tipe == 'mp3': cmd += ['--extract-audio','--audio-format','mp3','--ffmpeg-location','/usr/bin/ffmpeg','--prefer-ffmpeg']
  elif tipe == 'mp4': cmd += ['-f','bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]']
  else: return jsonify({"error":"tipe harus mp3 atau mp4"})
  subprocess.run(cmd)
