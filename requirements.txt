@@ -1,6 +1,4 @@
 flask
-yt-dlp
 rembg
-pillow
-onnxruntime
-math
+Pillow
+yt-dlp
