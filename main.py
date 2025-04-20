@@ -1,3 +1,4 @@
+from pathlib import Path
 import math
 from flask import Flask, request, send_file, jsonify
 import os, uuid, subprocess, random, threading, time
@@ -6,8 +7,17 @@ from PIL import Image
 
 # ==== CONFIGURATION & PRELOAD MODEL ====
 app = Flask(__name__)
-# Auto-load U2NET model for removebg
-session_u2net = new_session(model_name="u2net")
+model_path = Path(".u2net/u2net.onnx")
+model_path.parent.mkdir(parents=True, exist_ok=True)
+
+# Download manual kalau belum ada
+if not model_path.exists():
+    import requests
+    url = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx"
+    with open(model_path, "wb") as f:
+        f.write(requests.get(url).content)
+
+session_u2net = new_session(model_name="u2net", model_path=str(model_path))
 
 # Utility: Auto-delete file after delay (in seconds)
 def auto_delete(path, delay=180):
