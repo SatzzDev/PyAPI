@@ -1,23 +1,10 @@
-from pathlib import Path
 import math
 from flask import Flask, request, send_file, jsonify
 import os, uuid, subprocess, random, threading, time
-from rembg import new_session, remove as rembg_remove
+from pathlib import Path
 from PIL import Image
 
-# ==== CONFIGURATION & PRELOAD MODEL ====
 app = Flask(__name__)
-model_path = Path(".u2net/u2net.onnx")
-model_path.parent.mkdir(parents=True, exist_ok=True)
-
-# Download manual kalau belum ada
-if not model_path.exists():
-    import requests
-    url = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx"
-    with open(model_path, "wb") as f:
-        f.write(requests.get(url).content)
-
-session_u2net = new_session(model_name="u2net", model_path=str(model_path))
 
 # Utility: Auto-delete file after delay (in seconds)
 def auto_delete(path, delay=180):
@@ -64,56 +51,36 @@ def yt():
     if not url:
         return jsonify(error="url kosong"), 400
 
-    # Validate basic YouTube URL
     if not url.startswith(('http://', 'https://')):
         return jsonify(error="url tidak valid"), 400
 
-    # Generate unique output pattern
     uid = str(uuid.uuid4())
     out_pattern = f"{uid}.%(ext)s"
 
-    # Build yt-dlp command
     cmd = ['yt-dlp', url, '-o', out_pattern]
     if tipe == 'mp3':
-        cmd += ['-x', '--audio-format', 'mp3', '--audio-quality', '0',
-                '--ffmpeg-location', '/usr/bin/ffmpeg', '--prefer-ffmpeg']
+        cmd += ['-x', '--audio-format', 'mp3', '--audio-quality', '0']
     elif tipe == 'mp4':
-        cmd += ['-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
-                '--ffmpeg-location', '/usr/bin/ffmpeg', '--prefer-ffmpeg']
+        cmd += ['-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]']
     else:
         return jsonify(error="tipe harus mp3 atau mp4"), 400
 
     try:
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except subprocess.CalledProcessError as e:
-        app.logger.exception("yt-dlp gagal")
-        return jsonify(error="gagal download dari YouTube"), 500
+        app.logger.error(f"yt-dlp error: {e.stderr.decode()}")
+        return jsonify(error="Gagal download dari YouTube"), 500
 
-    # Find generated file
-    for fname in os.listdir('.'):
-        if fname.startswith(uid) and ((tipe=='mp3' and fname.endswith('.mp3')) or (tipe=='mp4' and fname.endswith('.mp4'))):
-            auto_delete(fname)
-            return send_file(fname, as_attachment=True)
+    # Cari file hasil download
+    for file in Path('.').glob(f"{uid}.*"):
+        if tipe == 'mp3' and file.suffix == '.mp3':
+            auto_delete(file)
+            return send_file(file, as_attachment=True)
+        if tipe == 'mp4' and file.suffix == '.mp4':
+            auto_delete(file)
+            return send_file(file, as_attachment=True)
 
-    return jsonify(error="file output tidak ditemukan"), 500
-
-# Background removal endpoint
-@app.route('/removebg', methods=['POST'])
-def removebg():
-    if 'image' not in request.files:
-        return jsonify(error="image kosong"), 400
-    try:
-        img = Image.open(request.files['image'].stream).convert('RGBA')
-        out_img = rembg_remove(img, session=session_u2net)
-
-        out_path = f"{uuid.uuid4()}.png"
-        out_img.save(out_path, format="PNG")
-        auto_delete(out_path)
-        return send_file(out_path, mimetype='image/png')
-
-    except Exception as e:
-        app.logger.exception("Error di /removebg")
-        return jsonify(error=str(e)), 500
+    return jsonify(error="File output tidak ditemukan"), 500
 
 # Upscale endpoint
 @app.route('/upscale', methods=['POST'])
