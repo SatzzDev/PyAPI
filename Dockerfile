@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY . .
-COPY .u2net /root/.u2net
+COPY .u2net/u2net.onnx /root/.u2net/u2net.onnx
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
